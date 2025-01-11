@@ -1,0 +1,94 @@
+pipeline {
+    agent any
+
+    environment {
+        REPO_URL = 'https://github.com/ramvn99/microservices-app.git' // Replace with your GitHub repo URL
+        DOCKERHUB_CREDENTIALS = 'docker-cred' // Jenkins credentials ID for Docker Hub
+        AWS_CREDENTIALS = 'aws-credentials' // Jenkins credentials ID for AWS
+        DOCKERHUB_USERNAME = 'ramvn' // Replace with your Docker Hub username
+        IMAGE_PREFIX = 'eus' // Replace with your desired image prefix
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[url: env.REPO_URL]]])
+            }
+        }
+
+        stage('Build Docker Images') {
+            parallel {
+                stage('Node.js Application') {
+                    steps {
+                        dir('node-app') {
+                            script {
+                                def imageTag = "${env.IMAGE_PREFIX}/node-app:${env.BUILD_NUMBER}"
+                                sh "docker build -t ${imageTag} ."
+                                env.NODE_APP_IMAGE = imageTag
+                            }
+                        }
+                    }
+                }
+
+                stage('Flask Application') {
+                    steps {
+                        dir('flask-app') {
+                            script {
+                                def imageTag = "${env.IMAGE_PREFIX}/flask-app:${env.BUILD_NUMBER}"
+                                sh "docker build -t ${imageTag} ."
+                                env.FLASK_APP_IMAGE = imageTag
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Push Docker Images') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: env.DOCKERHUB_CREDENTIALS, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    script {
+                        sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                        sh "docker push ${env.NODE_APP_IMAGE}"
+                        sh "docker push ${env.FLASK_APP_IMAGE}"
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: env.AWS_CREDENTIALS, usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    script {
+                        sh """
+                        # Set AWS credentials
+                        export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                        export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+
+                        # Apply Node.js application manifest
+                        kubectl apply -f k8s/node-app-deployment.yaml
+
+                        # Apply Flask application manifest
+                        kubectl apply -f k8s/flask-app-deployment.yaml
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up Docker images from the build machine.'
+            sh "docker rmi ${env.NODE_APP_IMAGE} ${env.FLASK_APP_IMAGE} || true"
+        }
+
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+
+        failure {
+            echo 'Pipeline failed. Please check the logs for more details.'
+        }
+    }
+}
