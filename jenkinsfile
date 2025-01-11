@@ -6,7 +6,7 @@ pipeline {
         DOCKERHUB_CREDENTIALS = 'docker-cred' // Jenkins credentials ID for Docker Hub
         AWS_CREDENTIALS = 'aws-credentials' // Jenkins credentials ID for AWS
         DOCKERHUB_USERNAME = 'ramvn' // Replace with your Docker Hub username
-        IMAGE_PREFIX = 'eus' // Replace with your desired image prefix
+        IMAGE_PREFIX = 'ramvn' // Replace with your desired image prefix
     }
 
     stages {
@@ -49,8 +49,15 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: env.DOCKERHUB_CREDENTIALS, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     script {
                         sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                        sh "docker push ${env.NODE_APP_IMAGE}:latest"
-                        sh "docker push ${env.FLASK_APP_IMAGE}:latest"
+                        // Push Node.js image
+                def nodeAppImage = "${env.DOCKERHUB_USERNAME}/node-app:${env.BUILD_NUMBER}"
+                sh "docker tag ${env.NODE_APP_IMAGE} ${nodeAppImage}"
+                sh "docker push ${nodeAppImage}"
+
+                // Push Flask image
+                def flaskAppImage = "${env.DOCKERHUB_USERNAME}/flask-app:${env.BUILD_NUMBER}"
+                sh "docker tag ${env.FLASK_APP_IMAGE} ${flaskAppImage}"
+                sh "docker push ${flaskAppImage}"
                     }
                 }
             }
