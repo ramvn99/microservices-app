@@ -4,7 +4,7 @@ pipeline {
     environment {
         REPO_URL = 'https://github.com/ramvn99/microservices-app.git' // Replace with your GitHub repo URL
         DOCKERHUB_CREDENTIALS = 'docker-cred' // Jenkins credentials ID for Docker Hub
-        AWS_CREDENTIALS = 'aws-credentials' // Jenkins credentials ID for AWS
+        AWS_CREDENTIALS = 'aws-cred-latest' // Jenkins credentials ID for AWS
         DOCKERHUB_USERNAME = 'ramvn' // Replace with your Docker Hub username
         IMAGE_PREFIX = 'ramvn' // Replace with your desired image prefix
     }
