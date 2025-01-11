@@ -49,8 +49,8 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: env.DOCKERHUB_CREDENTIALS, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     script {
                         sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                        sh "docker push ${env.NODE_APP_IMAGE}"
-                        sh "docker push ${env.FLASK_APP_IMAGE}"
+                        sh "docker push ${env.NODE_APP_IMAGE}:latest"
+                        sh "docker push ${env.FLASK_APP_IMAGE}:latest"
                     }
                 }
             }
