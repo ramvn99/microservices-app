@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: flask-app
-        image: your-dockerhub-username/flask-app:latest
+        image: ramvn/flask-app:3
         ports:
         - containerPort: 5000
 ---
