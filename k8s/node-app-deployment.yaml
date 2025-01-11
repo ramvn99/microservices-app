@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: node-app
-        image: your-dockerhub-username/node-app:latest
+        image: ramvn/node-app:3
         ports:
         - containerPort: 3000
 ---
